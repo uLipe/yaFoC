@@ -1,0 +1,11 @@
+name: Build
+on: push
+jobs:
+  build:
+    name: Test compiling 
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+    - name: Compile all examples
+      uses: ArminJo/arduino-test-compile@v1.0.0
