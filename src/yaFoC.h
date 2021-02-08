@@ -12,6 +12,24 @@ namespace yafoc {
         kInvalid
     };
 
+    struct Radians {
+        float raw;
+        Radians(float initial): raw(initial) {};
+        float ToRaw() {return raw;};
+    };
+
+    struct QCurrent {
+        float raw;
+        QCurrent(float initial): raw(initial) {};
+        float ToRaw() {return raw;};
+    };
+
+    struct DCurrent {
+        float raw;
+        DCurrent(float initial): raw(initial) {};
+        float ToRaw() {return raw;};
+    };
+
     class ControllerFOC {
 
     public:
