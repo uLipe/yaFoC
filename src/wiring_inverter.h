@@ -1,5 +1,5 @@
 #pragma once 
-#include "../yaFoC.h"
+#include "yaFoC.h"
 
 namespace yafoc {
 namespace platform_arduino {
