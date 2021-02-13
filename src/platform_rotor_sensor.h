@@ -9,8 +9,8 @@ namespace rotor_sensor{
             static_cast<Derived*>(this)->SetCountToZero();
         }
 
-        float GetCpr() {
-            return static_cast<Derived*>(this)->GetCpr();
+        float GetCountsPerRevolution() {
+            return static_cast<Derived*>(this)->GetCountsPerRevolution();
         } 
 
         float ReadCounter() {

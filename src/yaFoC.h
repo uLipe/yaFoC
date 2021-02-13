@@ -47,7 +47,7 @@ namespace yafoc {
         float ToRaw() {return raw;};
     };
 
-    template <class A, class B, class C>
+    template <class Current, class Rotor, class Driver>
     class ControllerFOC {
         DCurrent i_d;
         QCurrent i_q;
@@ -59,15 +59,15 @@ namespace yafoc {
         float dt;
         float motor_pole_pairs;
 
-        current_sensor::CurrentSensorInterface<A>& i_sensor;
-        rotor_sensor::RotorSensorInterface<B>& shaft_sensor;
-        inverter_driver::InverterInterface<C>& pwm_driver;
+        current_sensor::CurrentSensorInterface<Current>& i_sensor;
+        rotor_sensor::RotorSensorInterface<Rotor>& shaft_sensor;
+        inverter_driver::InverterInterface<Driver>& pwm_driver;
         
     public:
         ControllerFOC(unsigned pole_pairs, 
-                    current_sensor::CurrentSensorInterface<A>& cs,
-                    rotor_sensor::RotorSensorInterface<B>& shaft,
-                    inverter_driver::InverterInterface<C>& inverter) : 
+                    current_sensor::CurrentSensorInterface<Current>& cs,
+                    rotor_sensor::RotorSensorInterface<Rotor>& shaft,
+                    inverter_driver::InverterInterface<Driver>& inverter) : 
                     motor_pole_pairs((float)pole_pairs),
                     i_sensor(cs),
                     shaft_sensor(shaft),
@@ -95,7 +95,7 @@ namespace yafoc {
         }
 
         void RunControllerFOC(TimeStamp& now){
-            
+            (void)now.ToRaw();
         }
     };
 }
