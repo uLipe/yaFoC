@@ -7,10 +7,10 @@ namespace platform_arduino {
 using namespace inverter_driver;
 
 class Wiring3PhaseInverter : public InverterInterface<Wiring3PhaseInverter>{
-    float dc_link_voltage;
     int pwm_u;
     int pwm_v;
     int pwm_w;
+    float dc_link_voltage;
     float voltage_to_duty_scale;
 public:
     Wiring3PhaseInverter(int pin_u, int pin_v, int pin_w, float link_voltage);

@@ -7,12 +7,12 @@ namespace platform_arduino {
 using namespace rotor_sensor;
 
 class WiringRotorAnalogSensor : public RotorSensorInterface<WiringRotorAnalogSensor>{
+    int pin_number;
+    float limit_low;
+    float limit_high;
     float current_counter;
     float cpr;
     float prevous_read;
-    float limit_low;
-    float limit_high;
-    int pin_number;
 
 public:
     WiringRotorAnalogSensor(int sensor_pin, 

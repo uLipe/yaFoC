@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "wiring_rotor_sensor.h"
-#include <cmath>
+#include <math.h>
 
 namespace yafoc {
 namespace platform_arduino {
