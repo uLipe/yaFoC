@@ -48,6 +48,20 @@ struct TimeStamp {
     float ToRaw() {return raw;};
 };
 
+struct FoCTelemetry {
+    float iq;
+    float id;
+    float shaft_ticks;
+    float rotor_position_mechanical;
+    float rotor_position_electrical;
+    float phase_voltages[3];
+    float phase_currents[3];
+    float supply_voltage;
+    float dt;
+
+    FoCTelemetry() {};
+};
+
 template <class Current, class Rotor, class Driver>
 class ControllerFOC {
     DCurrent i_d;
@@ -96,6 +110,10 @@ public:
     RotorAlignStatus SetTargetCurrent(DCurrent& id, QCurrent& iq){
         return RotorAlignStatus::kAligned;
     }
+
+    void GetTelemetry(FoCTelemetry& telemetry) {
+        
+    } 
 
     void RunControllerFOC(TimeStamp& now){
         (void)now.ToRaw();
