@@ -16,6 +16,10 @@ namespace rotor_sensor{
         float ReadCounter() {
             return static_cast<Derived*>(this)->ReadCounter();
         }
+
+        void SensorBlockingDelayMs(unsigned ms) {
+            static_cast<Derived*>(this)->SensorBlockingDelayMs(ms); 
+        }
     };
 
 }    

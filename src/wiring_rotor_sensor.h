@@ -22,6 +22,7 @@ public:
     void SetCountToZero();
     float GetCountsPerRevolution(); 
     float ReadCounter();
+    void SensorBlockingDelayMs(unsigned ms);
 };
 
 }

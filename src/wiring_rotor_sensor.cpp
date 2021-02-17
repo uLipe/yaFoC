@@ -45,5 +45,9 @@ float WiringRotorAnalogSensor::ReadCounter() {
     return current_counter + raw;
 }
 
+void WiringRotorAnalogSensor::SensorBlockingDelayMs(unsigned ms) {
+    delay(ms);
+}
+
 }
 }
