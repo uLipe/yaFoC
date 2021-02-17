@@ -10,6 +10,8 @@
 #include "platform_inverter_driver.h"
 #include "platform_rotor_sensor.h"
 
+#include <math.h>
+
 namespace yafoc {
 
 enum class RotorAlignStatus{
@@ -76,7 +78,12 @@ class ControllerFOC {
     inverter_driver::InverterInterface<Driver>& pwm_driver;
     
     float dt;
+    float shaft_to_radians;
     RotorAlignStatus status;
+
+    inline void ShaftTicksToRadians() {
+        shaft_angle.raw = shaft_to_radians * shaft_sensor.ReadCounter();
+    }
     
 public:
     ControllerFOC(unsigned pole_pairs, 
@@ -95,6 +102,7 @@ public:
 
         status = RotorAlignStatus::kNotAligned;
         supply_voltage.raw = pwm_driver.GetVoltageSupply();
+        shaft_to_radians = ((2.0f * M_PI) /shaft_sensor.GetCountsPerRevolution());
         pwm_driver.SetInverterVoltages(0.0f, 0.0f, 0.0f);
     }
 
