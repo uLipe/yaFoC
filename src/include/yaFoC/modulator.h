@@ -18,7 +18,8 @@ inline void GetDqCurrents(float theta,
     dq_transforms::ParkTransform(theta, ab_frame, id, iq);
 }
 
-inline void ModulateDqVoltages(float theta,
+inline void ModulateDqVoltages(float vbus_bias,
+                            float theta,
                             float vd, 
                             float vq, 
                             float *vu, 
@@ -29,6 +30,10 @@ inline void ModulateDqVoltages(float theta,
 
     dq_transforms::InverseParkTransform(theta, dq_frame, &ab_frame[0], &ab_frame[1]);
     dq_transforms::InverseClarkeTransform(ab_frame, vu,vv,vw);
+
+    *vu += vbus_bias;
+    *vv += vbus_bias;
+    *vw += vbus_bias;
 }
 
 }
