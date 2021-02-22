@@ -56,5 +56,15 @@ public:
     }
 };
 
+inline float SymmetricSaturate(float to_saturate, float saturation_value) {
+    if(to_saturate > saturation_value) {
+        return saturation_value;
+    } else if (to_saturate < -saturation_value) {
+        return -saturation_value;
+    } else {
+        return to_saturate;
+    }
+}
+
 }
 }

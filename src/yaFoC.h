@@ -50,20 +50,6 @@ struct TimeStamp {
     float ToRaw() {return raw;};
 };
 
-struct FoCTelemetry {
-    float iq;
-    float id;
-    float shaft_ticks;
-    float rotor_position_mechanical;
-    float rotor_position_electrical;
-    float phase_voltages[3];
-    float phase_currents[3];
-    float supply_voltage;
-    float dt;
-
-    FoCTelemetry() {};
-};
-
 template <class Current, class Rotor, class Driver>
 class ControllerFOC {
     DCurrent i_d;
@@ -77,9 +63,14 @@ class ControllerFOC {
     current_sensor::CurrentSensorInterface<Current>& i_sensor;
     rotor_sensor::RotorSensorInterface<Rotor>& shaft_sensor;
     inverter_driver::InverterInterface<Driver>& pwm_driver;
-    
+    controller::PidController iq_controller;
+    controller::PidController id_controller;
+
     float dt;
     float shaft_to_radians;
+    float vqd[2];
+    float vabc[3];
+    float iqd_measured[2];
     RotorAlignStatus status;
 
     inline float ShaftTicksToRadians() {
@@ -102,12 +93,23 @@ public:
                 motor_pole_pairs((float)pole_pairs),
                 i_sensor(cs),
                 shaft_sensor(shaft),
-                pwm_driver(inverter) {
+                pwm_driver(inverter),
+                iq_controller(),
+                id_controller() {
 
         status = RotorAlignStatus::kNotAligned;
         supply_voltage.raw = pwm_driver.GetVoltageSupply();
         biased_supply_voltage.raw = supply_voltage.raw * 0.5f;
         shaft_to_radians = ((2.0f * M_PI) /shaft_sensor.GetCountsPerRevolution());
+
+        iq_controller.kp = 10.0f;
+        iq_controller.kp = 1.0f;
+        iq_controller.kd = 0.0f;
+
+        id_controller.kp = 10.0f;
+        id_controller.kp = 1.0f;
+        id_controller.kd = 0.0f;
+        
         pwm_driver.SetInverterVoltages(0.0f, 0.0f, 0.0f);
     }
 
@@ -119,9 +121,6 @@ public:
     RotorAlignStatus InitializeAndAlignRotor(){
         using namespace modulator;
         using namespace conversions;
-
-        float  vqd[2] = {0.0f, 0.0f};
-        float  vabc[3];
         float  theta = 0.0f;
 
         ModulateDqVoltages(biased_supply_voltage.ToRaw(), 
@@ -194,11 +193,54 @@ public:
         return status;
     }
 
-    void GetTelemetry(FoCTelemetry& telemetry) {
-    } 
+    RotorAlignStatus RunControllerFOC(TimeStamp& now){
+        using namespace modulator;
+        using namespace conversions;
 
-    void RunControllerFOC(TimeStamp& now){
-        (void)now.ToRaw();
+        if(status != RotorAlignStatus::kAligned) {
+            return status;
+        }
+
+        float dt = (now.ToRaw() - last_t.ToRaw());
+        last_t.raw = now.ToRaw();
+
+        if(dt == 0.0f) {
+            return RotorAlignStatus::kInvalid;
+        }
+
+        float theta = ShaftTicksToRadians();
+        auto iabc = i_sensor.GetPhaseCurrents();
+
+        GetDqCurrents(theta, 
+                    iabc.i_u, 
+                    iabc.i_v,
+                    iabc.i_w,
+                    &iqd_measured[0],
+                    &iqd_measured[1]);
+                    
+
+        auto setpoint_q = controller::Setpoint(i_q.ToRaw());
+        auto measured_q = controller::Measured(iqd_measured[0]);
+        auto setpoint_d = controller::Setpoint(i_d.ToRaw());
+        auto measured_d = controller::Measured(iqd_measured[1]);
+
+        vqd[0] = iq_controller.Update(setpoint_q, measured_q, dt);
+        vqd[1] = id_controller.Update(setpoint_d, measured_d, dt);
+
+        vqd[0] = controller::SymmetricSaturate(vqd[0], biased_supply_voltage.ToRaw());
+        vqd[1] = controller::SymmetricSaturate(vqd[1], biased_supply_voltage.ToRaw());
+
+        ModulateDqVoltages(biased_supply_voltage.ToRaw(),
+                        theta,
+                        vqd[0],
+                        vqd[1],
+                        &vabc[0],
+                        &vabc[1],
+                        &vabc[2]);
+
+        pwm_driver.SetInverterVoltages(vabc[0],vabc[1],vabc[2]);
+
+        return status;
     }
 };
 }
