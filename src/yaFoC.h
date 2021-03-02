@@ -71,6 +71,7 @@ class ControllerFOC {
     float vqd[2];
     float vabc[3];
     float iqd_measured[2];
+    bool open_loop_current_mode;
     RotorAlignStatus status;
 
     inline float ShaftTicksToRadians() {
@@ -110,6 +111,8 @@ public:
         id_controller.kp = 1.0f;
         id_controller.kd = 0.0f;
         
+        open_loop_current_mode = true;
+
         pwm_driver.SetInverterVoltages(0.0f, 0.0f, 0.0f);
     }
 
@@ -183,6 +186,14 @@ public:
         return status;
     }
 
+    void SetControllerToClosedLoop() {
+        open_loop_current_mode = false;
+    }
+
+    void SetControllerToOpenLoop() {
+        open_loop_current_mode = true;
+    }
+
     RotorAlignStatus SetTargetCurrent(DCurrent& id, QCurrent& iq){
         if(status != RotorAlignStatus::kAligned) {
             return status;
@@ -218,17 +229,21 @@ public:
                     &iqd_measured[0],
                     &iqd_measured[1]);
                     
+        if(!open_loop_current_mode){
+            auto setpoint_q = controller::Setpoint(i_q.ToRaw());
+            auto measured_q = controller::Measured(iqd_measured[0]);
+            auto setpoint_d = controller::Setpoint(i_d.ToRaw());
+            auto measured_d = controller::Measured(iqd_measured[1]);
 
-        auto setpoint_q = controller::Setpoint(i_q.ToRaw());
-        auto measured_q = controller::Measured(iqd_measured[0]);
-        auto setpoint_d = controller::Setpoint(i_d.ToRaw());
-        auto measured_d = controller::Measured(iqd_measured[1]);
+            vqd[0] = iq_controller.Update(setpoint_q, measured_q, dt);
+            vqd[1] = id_controller.Update(setpoint_d, measured_d, dt);
 
-        vqd[0] = iq_controller.Update(setpoint_q, measured_q, dt);
-        vqd[1] = id_controller.Update(setpoint_d, measured_d, dt);
-
-        vqd[0] = controller::SymmetricSaturate(vqd[0], biased_supply_voltage.ToRaw());
-        vqd[1] = controller::SymmetricSaturate(vqd[1], biased_supply_voltage.ToRaw());
+            vqd[0] = controller::SymmetricSaturate(vqd[0], biased_supply_voltage.ToRaw());
+            vqd[1] = controller::SymmetricSaturate(vqd[1], biased_supply_voltage.ToRaw());
+        } else {
+            vqd[0] = controller::SymmetricSaturate(i_q.ToRaw(), biased_supply_voltage.ToRaw());
+            vqd[1] = controller::SymmetricSaturate(i_d.ToRaw(), biased_supply_voltage.ToRaw());
+        }
 
         ModulateDqVoltages(biased_supply_voltage.ToRaw(),
                         theta,
