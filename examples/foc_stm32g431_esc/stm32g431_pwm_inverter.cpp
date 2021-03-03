@@ -4,9 +4,9 @@
 namespace yafoc {
 namespace platform_stm32 {
 
-constexpr int PWM_RESOLUTION = 12; // 12bit
-constexpr float PWM_RANGE = 4095.0;// 2^12 -1 = 4095
-constexpr int PWM_FREQUENCY = 25000 // 25khz
+constexpr int FOC_PWM_RESOLUTION = 12; // 12bit
+constexpr float FOC_PWM_RANGE = 4095.0;// 2^12 -1 = 4095
+constexpr int FOC_PWM_FREQUENCY = 25000; // 25khz
 
 static void Stm32G431UpdatePhasePWm(int ulPin, uint32_t value, int resolution)
 {
@@ -69,7 +69,7 @@ static HardwareTimer* ConfigStm32G431PwmInverter(uint32_t PWM_freq,
 Stm32g431_Inverter::Stm32g431_Inverter( float link_voltage) : 
                                     dc_link_voltage(link_voltage) {
     
-    voltage_to_duty_scale = PWM_RANGE / dc_link_voltage;
+    voltage_to_duty_scale = FOC_PWM_RANGE / dc_link_voltage;
 
     pwm_uh = PHASE_UH;
     pwm_ul = PHASE_UL;
@@ -78,7 +78,7 @@ Stm32g431_Inverter::Stm32g431_Inverter( float link_voltage) :
     pwm_wh = PHASE_WH;
     pwm_wl = PHASE_WL;
 
-    ConfigStm32G431PwmInverter(PWM_FREQUENCY * 2,
+    ConfigStm32G431PwmInverter(FOC_PWM_FREQUENCY * 2,
                                100.0f, //100 nanoseconds
                                pwm_uh,
                                pwm_ul,
@@ -87,15 +87,15 @@ Stm32g431_Inverter::Stm32g431_Inverter( float link_voltage) :
                                pwm_wh,
                                pwm_wl);
 
-    Stm32G431UpdatePhasePWm(pwm_uh, 0, PWM_RESOLUTION);
-    Stm32G431UpdatePhasePWm(pwm_vh, 0, PWM_RESOLUTION);
-    Stm32G431UpdatePhasePWm(pwm_wh, 0, PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_uh, 0, FOC_PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_vh, 0, FOC_PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_wh, 0, FOC_PWM_RESOLUTION);
 }
 
 Stm32g431_Inverter::~Stm32g431_Inverter() {
-    Stm32G431UpdatePhasePWm(pwm_uh, 0, PWM_RESOLUTION);
-    Stm32G431UpdatePhasePWm(pwm_vh, 0, PWM_RESOLUTION);
-    Stm32G431UpdatePhasePWm(pwm_wh, 0, PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_uh, 0, FOC_PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_vh, 0, FOC_PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_wh, 0, FOC_PWM_RESOLUTION);
 }
 
 float Stm32g431_Inverter::GetVoltageSupply() {
@@ -103,9 +103,9 @@ float Stm32g431_Inverter::GetVoltageSupply() {
 }
 
 void Stm32g431_Inverter::SetInverterVoltages(float u, float v, float w) {
-    Stm32G431UpdatePhasePWm(pwm_uh, u * voltage_to_duty_scale, PWM_RESOLUTION);
-    Stm32G431UpdatePhasePWm(pwm_vh, v * voltage_to_duty_scale, PWM_RESOLUTION);
-    Stm32G431UpdatePhasePWm(pwm_wh, w * voltage_to_duty_scale, PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_uh, u * voltage_to_duty_scale, FOC_PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_vh, v * voltage_to_duty_scale, FOC_PWM_RESOLUTION);
+    Stm32G431UpdatePhasePWm(pwm_wh, w * voltage_to_duty_scale, FOC_PWM_RESOLUTION);
 }
 
 }
