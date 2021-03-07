@@ -10,5 +10,5 @@ jobs:
     - name: Compile all examples
       uses: ArminJo/arduino-test-compile@v1.0.0
       with:
-        examples-exclude: foc_stm32g431_esc
+        examples-exclude: foc_stm32g431_esc foc_esp32_wroom
         platform-default-url: https://github.com/stm32duino/BoardManagerFiles/raw/master/STM32/package_stm_index.json

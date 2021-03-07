@@ -136,7 +136,7 @@ public:
         pwm_driver.SetInverterVoltages(vabc[0], vabc[1], vabc[2]);
         shaft_sensor.SensorBlockingDelayMs(1000);
 
-        vqd[0] = supply_voltage.ToRaw() * 0.1f;
+        vqd[0] = supply_voltage.ToRaw() * 0.25f;
         vqd[1] = 0.0f;
 
         for (float i = 0.0f; i < 5.0f; i += 1.0f) {
