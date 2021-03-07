@@ -126,7 +126,7 @@ public:
         using namespace conversions;
         float  theta = 0.0f;
         vqd[0] = 0.0f;
-        vqd[1] = supply_voltage.ToRaw() * 0.25f;
+        vqd[1] = supply_voltage.ToRaw() * 0.1f;
 
         for (float i = 0.0f; i < 500.0f; i += 1.0f) {
             theta = NormalizeElectricalAngle(FromMechanicalToElectricAngle((ALIGN_ANGLE_CONSTANT * i) / 500.0f, motor_pole_pairs));
@@ -154,22 +154,10 @@ public:
             shaft_sensor.SensorBlockingDelayMs(5);
         }
 
-        shaft_sensor.SensorBlockingDelayMs(1000);
+        shaft_sensor.SensorBlockingDelayMs(250);
+        pwm_driver.SetInverterVoltages(0.0f, 0.0f, 0.0f);
+        shaft_sensor.SensorBlockingDelayMs(250);
         shaft_sensor.SetCountToZero();
-        shaft_sensor.SensorBlockingDelayMs(1000);
-
-        vqd[0] = 0.0f;
-        vqd[1] = 0.0f;
-
-        ModulateDqVoltages(biased_supply_voltage.ToRaw(), 
-                        theta, 
-                        vqd[0], 
-                        vqd[1], 
-                        &vabc[0], 
-                        &vabc[1], 
-                        &vabc[2]);
-        pwm_driver.SetInverterVoltages(vabc[0], vabc[1], vabc[2]);
-        shaft_sensor.SensorBlockingDelayMs(1000);
         status = RotorAlignStatus::kAligned; 
 
         return status;
