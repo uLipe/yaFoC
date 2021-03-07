@@ -20,3 +20,7 @@ control library for PMSM motors, its goals include but is not limited to: portab
 ## Support:
 If you find some trouble, open an issue, and if you are enjoying the project
 give it a star. Also, you can try reaching me at ryukokki.felipe@gmail.com
+
+## Acknoledgements:
+This project has a close inspiration on simpleFoC, which is doing a great job to 
+desmistify the BLDC vector control: https://github.com/simplefoc/Arduino-FOC 
