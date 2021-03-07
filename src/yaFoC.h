@@ -50,6 +50,13 @@ struct TimeStamp {
     float ToRaw() {return raw;};
 };
 
+struct FocTelemetry {
+    float vabc[3];
+    float rotor_position;
+    float vq;
+    float vd;
+};
+
 template <class Current, class Rotor, class Driver>
 class ControllerFOC {
     DCurrent i_d;
@@ -169,6 +176,15 @@ public:
 
     void SetControllerToOpenLoop() {
         open_loop_current_mode = true;
+    }
+
+    void UpdateTelemetry(FocTelemetry& telemetry) {
+        telemetry.vabc[0] = vabc[0];
+        telemetry.vabc[1] = vabc[1];
+        telemetry.vabc[2] = vabc[2];
+        telemetry.rotor_position =  shaft_angle.ToRaw();
+        telemetry.vd = vqd[0];
+        telemetry.vq = vqd[1];
     }
 
     RotorAlignStatus SetTargetCurrent(DCurrent& id, QCurrent& iq){
