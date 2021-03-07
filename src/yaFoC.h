@@ -197,6 +197,16 @@ public:
         return status;
     }
 
+    RotorAlignStatus SetVoltageQ(float vq) {
+        if(status != RotorAlignStatus::kAligned) {
+            return status;
+        }
+
+        vqd[0] = vq;
+        vqd[1] = 0;
+        return status;
+    }
+
     RotorAlignStatus RunControllerFOC(TimeStamp& now){
         using namespace modulator;
         using namespace conversions;
