@@ -9,7 +9,7 @@ namespace conversions {
 
 constexpr float FAST_PI = 3.14159265358f;
 constexpr float FAST_2PI = FAST_PI * 2.0f;
-constexpr float ALIGN_ANGLE_CONSTANT = (FAST_PI / 2.0f) - FAST_2PI; 
+constexpr float ALIGN_ANGLE_CONSTANT = ((3.0f * FAST_PI) / 2.0f) + FAST_2PI; 
 
 constexpr float FromMechanicalToElectricAngle(float mechanical, float pole_pairs) {
     return (mechanical * pole_pairs);
