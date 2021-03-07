@@ -218,8 +218,8 @@ public:
             vqd[0] = controller::SymmetricSaturate(vqd[0], biased_supply_voltage.ToRaw());
             vqd[1] = controller::SymmetricSaturate(vqd[1], biased_supply_voltage.ToRaw());
         } else {
-            vqd[0] = controller::SymmetricSaturate(i_q.ToRaw(), biased_supply_voltage.ToRaw());
-            vqd[1] = controller::SymmetricSaturate(i_d.ToRaw(), biased_supply_voltage.ToRaw());
+            vqd[0] = i_q.ToRaw();
+            vqd[1] = i_d.ToRaw();
         }
 
         ModulateDqVoltages(biased_supply_voltage.ToRaw(),
