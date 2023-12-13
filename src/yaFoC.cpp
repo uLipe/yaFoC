@@ -1,117 +1,152 @@
+#include <functional>
+#include <cmath>
+#include <algorithm>
+#include <memory>
 #include "yaFoC.h"
 
-yaFoCMotorController::ControllerFOC(float pole_pairs, int control_loop_time_us, RotorSensor& r, InverterDriver& i, TimerDriver& t) :
-    m_motor_pole_pairs{pole_pairs},
-    m_control_loop_time_us{control_loop_time_us},
-    m_rotor_sensor{r},
-    m_inverter{i},
-    m_timer{t}
-{
-    m_inverter->Disable();
-    m_inverter->SetVoltages(0,0,0);
+namespace yafoc {
 
-    auto motor_callback = [this] (float dt) {
-        float cmd_speed{0};
-        float cmd_iq{0}
+yaFoCMotorController::yaFoCMotorController(MotorHardware& motor, float pole_pairs, float sample_time_seconds) :
+m_motor_hardware(motor), m_motor_pole_pairs(pole_pairs) {
 
-        /* Read sensors before doing anything*/
-        m_shaft_angle = rotor_position.GetPosition();
+    m_dt = sample_time_seconds;
+    m_motor_hardware.FetchAllSensors();
 
-        auto ea_normalized = conversions::NormalizeElectricalAngle(
-                                conversions::FromMechanicalToElectricAngle(
-                                    m_shaft_angle
-                                ));
+    //First of all align the rotor:
+    float rotor_angle;
+    m_motor_hardware.GetRotorAngle(rotor_angle);
+    float prev_angle = rotor_angle;
 
-        //Observe the new speed:
-        m_speed_observer.m_input_position = m_shaft_angle;
-        ObserveSpeedFromPosition(m_speed_observer);
-        m_shaft_speed = m_speed_observer.m_output_speed;
+    m_motor_hardware.SetDutyCycles(0.0f, 0.0f, 0.0f);
+    m_motor_hardware.SetDutyCycles(0.2f, 0.0f, 0.0f);
 
-        if(current_sensor != nullptr) {
-            m_current_sensor.GetPhaseCurrents(m_iabc);
-        }
+    do {
+        m_motor_hardware.FetchAllSensors();
+        m_motor_hardware.GetRotorAngle(rotor_angle);
+        if(fabs(rotor_angle - prev_angle) < 0.5f)
+            break;
+        prev_angle = rotor_angle;
+    } while (1);
 
-        if(m_foc_chain_controllers[static_cast<int>(kPositionPid)] != nullptr) {
-            PidController* p = m_foc_chain_controllers[static_cast<int>(kPositionPid)];
-            cmd_speed = p->Update(m_target_position, m_shaft_angle);
-        }
+    m_motor_hardware.SetDutyCycles(0.0f, 0.0f, 0.0f);
+    do {
+        m_motor_hardware.FetchAllSensors();
+        m_motor_hardware.GetRotorAngle(rotor_angle);
+        if(fabs(rotor_angle - prev_angle) < 0.5f)
+            break;
+        prev_angle = rotor_angle;
+    } while (1);
 
-        if(m_foc_chain_controllers[static_cast<int>(kSpeedPid)] != nullptr) {
-            PidController* p = m_foc_chain_controllers[static_cast<int>(kSpeedPid)];
-            cmd_iq = p->Update(m_target_speed + cmd_speed, m_shaft_speed);
-        }
-
-        if((m_foc_chain_controllers[static_cast<int>(kIdPid)] != nullptr) &&
-           (m_foc_chain_controllers[static_cast<int>(kIqPid)] != nullptr)) {
-            //For current control both IQ and IQ controllers must exist:
-            PidController* iqC = m_foc_chain_controllers[static_cast<int>(kIdPid)];
-            PidController* idC = m_foc_chain_controllers[static_cast<int>(kIqPid)];
-
-            //Project measured currents into dq_frame:
-            modulator::GetDqCurrents(ea_normalized,
-                                    m_iabc[0],
-                                    m_iabc[1],
-                                    m_iabc[2],
-                                    m_iqd_measured[1],
-                                    m_iqd_measured[0]);
-
-            m_vqd[0] = iqC->Update(cmd_iq, m_iqd_measured[0]);
-            m_vqd[1] = iqC->Update(0.0f, m_iqd_measured[0]);
-        } else {
-            //No current control required:
-            m_vqd[0] = cmd_iq;
-            m_vqd[1] = 0.0f
-        }
-
-        modulator::ModulateDqVoltages(0.5f,
-                                    ea_normalized,
-                                    m_vqd[1],
-                                    m_vqd[0],
-                                    m_vabc[0],
-                                    m_vabc[1],
-                                    m_vabc[2]);
-
-        m_inverter.SetVoltages(m_vabc[0], m_vabc[1], m_vabc[2]);
-    };
-
-    m_timer->RegisterCallback(motor_callback, NULL);
+    m_motor_hardware.GetRotorSpeedDps(m_shaft_speed);
+    m_shaft_speed *= m_dt;
 }
 
-yaFoCMotorController::RotorAlignStatus AlignRotor() {
+yaFoCMotorController::~yaFoCMotorController() {
 
-    m_timer->Start(m_control_loop_time_us);
-    return kAligned;
 }
 
-yaFoCMotorController::int LinkCurrentSensor(CurrentSensor& s) {
-    m_current_sensor = std::addressof(s);
-    return 0;
+bool yaFoCMotorController::SetPositionPid(PidController& pid) {
+    m_position_pid = std::addressof(pid);
 }
 
-yaFoCMotorController::int LinkPidController(const PidController& pid, PidControlIndex idx) {
-    m_foc_chain_controllers[static_cast<int>(idx)] = std::addressof(pid);
-    return 0;
+bool yaFoCMotorController::SetSpeedPid(PidController& pid) {
+    m_speed_pid = std::addressof(pid);
 }
 
-yaFoCMotorController::void SetTargetSpeed(const float rpm) {
-    //RPM -> Degree per second.
-    m_target_speed = rpm * 5.9999995176f;
+void yaFoCMotorController::SetTargetSpeed(const float deg_per_second){
+    m_target_speed = deg_per_second;
 }
 
-yaFoCMotorController::void SetTargetPosition(const float degrees) {
+void yaFoCMotorController::SetTargetPosition(const float degrees) {
     m_target_position = degrees;
 }
 
-yaFoCMotorController::void GetMotorTelemetry(FocTelemetry& telemetry) {
-    telemetry.vabc[0] = m_vabc[0];
-    telemetry.vabc[1] = m_vabc[1];
-    telemetry.vabc[2] = m_vabc[2];
-    telemetry.rotor_position = m_shaft_angle;
-    telemetry.rotor_speed = m_shaft_speed;
-    telemetry.rotor_position_ref = m_target_position;
-    telemetry.rotor_speed_ref = m_target_speed;
-    telemetry.vq = m_vqd[0];
-    telemetry.vd = m_vqd[1];
-    telemetry.iq = m_iqd_measured[0];
-    telemetry.id = m_iqd_measured[1];
+void yaFoCMotorController::Run() {
+    if(PollNotification()) {
+        m_motor_hardware.FetchAllSensors();
+        float e_rotor_angle;
+        float bus_voltage;
+        float pwm_scale;
+        float rotor_speed;
+        m_motor_hardware.GetRotorSpeedDps(rotor_speed);
+        rotor_speed *= m_dt;
+        float mech_acc_angle;
+        m_motor_hardware.GetAccumulatedAngle(mech_acc_angle);
+        float mech_angle;
+        m_motor_hardware.GetRotorAngle(mech_angle);
+        GetElectricalAngle(mech_angle, e_rotor_angle);
+        m_motor_hardware.GetDcBusVoltage(bus_voltage);
+        m_motor_hardware.GetSpeedToPWMScale(pwm_scale);
+
+        if(m_position_pid != nullptr) {
+            m_position_pid_ratio--;
+            if(!m_position_pid_ratio) {
+                m_position_pid_ratio = 10;
+
+                m_position_pid->Update(m_target_position,
+                                    mech_acc_angle,
+                                    m_u_position);
+            }
+        }
+
+        if(m_speed_pid != nullptr) {
+            m_speed_pid->Update(m_target_speed + m_u_position,
+                            rotor_speed,
+                            m_u_speed);
+        } else {
+            m_u_speed = m_target_speed * pwm_scale;
+        }
+
+        SetPhaseVoltage(m_u_speed * pwm_scale, 0.0f, e_rotor_angle);
+        m_shaft_speed = rotor_speed;
+        ConsumeNotification();
+    }
+}
+
+void yaFoCMotorController::SetPhaseVoltage(float uq, float ud, float phase) {
+    constexpr auto sqr3 =  1.7320508075688773f;
+    constexpr auto sqrt3_by_two = sqr3 / 2.0f;
+
+    float sine, cosine;
+    float a,b,c;
+    float alpha, beta;
+
+    //Inverse Park transform to project Uq/d into Ualpha/beta
+    //Rotating frame
+    SinCos(phase, sine, cosine);
+    alpha = ud * cosine - uq * sine;
+    beta = ud * sine + uq * cosine;
+
+    //Inverse Clark transform to project Ualpha/beta rotating
+    //frame into Va/b/c three-phase rotating frame:
+    a = alpha + 0.5f;
+	b = (-0.5f * alpha + sqrt3_by_two * beta) + 0.5f;
+	c = (-0.5f * alpha - sqrt3_by_two * beta) + 0.5f;
+
+    if(a > 1.0f) {
+        a = 1.0f;
+    } else if(a < 0.0f) {
+        a = 0.0f;
+    }
+
+    if(b > 1.0f) {
+        b = 1.0f;
+    } else if(a < 0.0f) {
+        b = 0.0f;
+    }
+
+    if(c > 1.0f) {
+        c = 1.0f;
+    } else if(a < 0.0f) {
+        c = 0.0f;
+    }
+
+    //Set the duty-cycles:
+    m_motor_hardware.SetDutyCycles(a, b, c);
+}
+
+void yaFoCMotorController::GetElectricalAngle(float mechanical_angle, float& elec_angle) {
+    elec_angle = mechanical_angle * m_motor_pole_pairs;
+}
+
 }
