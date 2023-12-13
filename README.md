@@ -1,6 +1,6 @@
 # yaFoC: yet another Field-oriented Control for PMSM motors arduino library
 
-![Build](https://github.com/uLipe/yaFoC/workflows/Build/badge.svg)
+[![Arduino CI](https://github.com/uLipe/yaFoC/workflows/Arduino_CI/badge.svg)](https://github.com/marketplace/actions/arduino_ci)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 yaFoC is another just for fun project to exercise a minimal good vector
