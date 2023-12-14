@@ -4,15 +4,15 @@ namespace yafoc {
 
 class Platform {
 public:
-    virtual void SendNotification() {
+    virtual void Trigger() {
         m_notification_flag = true;
     }
 
-    virtual bool PollNotification() {
+    virtual bool Poll() {
         return m_notification_flag;
     }
 
-    virtual void ConsumeNotification() {
+    virtual void Consume() {
         m_notification_flag = false;
     }
 

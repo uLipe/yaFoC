@@ -11,6 +11,6 @@ void setup() {
 }
 
 void loop () {
-    motor_controller.SendNotification();
+    motor_controller.Trigger();
     motor_controller.Run();
 }
