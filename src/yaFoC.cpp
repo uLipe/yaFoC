@@ -62,7 +62,7 @@ void yaFoCMotorController::SetTargetPosition(const float degrees) {
 }
 
 void yaFoCMotorController::Run() {
-    if(PollNotification()) {
+    if(Poll()) {
         m_motor_hardware.FetchAllSensors();
         float e_rotor_angle;
         float bus_voltage;
@@ -99,7 +99,7 @@ void yaFoCMotorController::Run() {
 
         SetPhaseVoltage(m_u_speed * pwm_scale, 0.0f, e_rotor_angle);
         m_shaft_speed = rotor_speed;
-        ConsumeNotification();
+        Consume();
     }
 }
 
